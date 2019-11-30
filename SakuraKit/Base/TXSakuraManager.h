@@ -165,6 +165,7 @@ typedef NS_ENUM(NSInteger, TXSakuraDownloadTaskStatus) {
 + (UIKeyboardAppearance)tx_keyboardAppearanceWithPath:(NSString *_Nullable)path;
 
 + (UIActivityIndicatorViewStyle)tx_activityIndicatorStyleWithPath:(NSString *_Nullable)path;
++ (UIBlurEffectStyle)tx_blurEffectStyleWithPath:(NSString *)path;
 
 @end
 

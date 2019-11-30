@@ -7,6 +7,55 @@
 //
 #define TXSakuraRGBHex(hex) [UIColor colorWithRed:((float)((hex & 0xFF0000) >> 16))/255.0 green:((float)((hex & 0xFF00) >> 8))/255.0 blue:((float)(hex & 0xFF))/255.0 alpha:1.0]
 
+static inline NSUInteger TXHexStrToInt(NSString *str) {
+    uint32_t result = 0;
+    sscanf([str UTF8String], "%X", &result);
+    return result;
+}
+
+static BOOL TXHexStrToRGBA(NSString *str,
+                           CGFloat *r, CGFloat *g, CGFloat *b, CGFloat *a) {
+    
+    NSCharacterSet *set = [NSCharacterSet whitespaceAndNewlineCharacterSet];
+    str = [str stringByTrimmingCharactersInSet:set];
+    str = [str uppercaseString];
+    if ([str hasPrefix:@"#"]) {
+        str = [str substringFromIndex:1];
+    } else if ([str hasPrefix:@"0X"]) {
+        str = [str substringFromIndex:2];
+    }
+    
+    NSUInteger length = [str length];
+    //         RGB            RGBA          RRGGBB        RRGGBBAA
+    if (length != 3 && length != 4 && length != 6 && length != 8) {
+        return NO;
+    }
+    
+    //RGB,RGBA,RRGGBB,RRGGBBAA
+    if (length < 5) {
+        *r = TXHexStrToInt([str substringWithRange:NSMakeRange(0, 1)]) / 255.0f;
+        *g = TXHexStrToInt([str substringWithRange:NSMakeRange(1, 1)]) / 255.0f;
+        *b = TXHexStrToInt([str substringWithRange:NSMakeRange(2, 1)]) / 255.0f;
+        if (length == 4)  *a = TXHexStrToInt([str substringWithRange:NSMakeRange(3, 1)]) / 255.0f;
+        else *a = 1;
+    } else {
+        *r = TXHexStrToInt([str substringWithRange:NSMakeRange(0, 2)]) / 255.0f;
+        *g = TXHexStrToInt([str substringWithRange:NSMakeRange(2, 2)]) / 255.0f;
+        *b = TXHexStrToInt([str substringWithRange:NSMakeRange(4, 2)]) / 255.0f;
+        if (length == 8) *a = TXHexStrToInt([str substringWithRange:NSMakeRange(6, 2)]) / 255.0f;
+        else *a = 1;
+    }
+    return YES;
+}
+
+static UIColor * TXRGBHex(NSString *hexStr){
+    CGFloat r, g, b, a;
+    if (TXHexStrToRGBA(hexStr, &r, &g, &b, &a)) {
+        return [UIColor colorWithRed:r green:g blue:b alpha:a];
+    }
+    return nil;
+}
+
 #import "TXSakuraManager.h"
 #import "ZipArchive.h"
 #import <objc/runtime.h>
@@ -390,6 +439,10 @@ SEL getSelectorWithPattern(const char *prefix, const char *key, const char *suff
             CGFloat fontValue = [obj floatValue];
             UIFont *font = [UIFont systemFontOfSize:fontValue];
             [factDict setObject:font forKey:NSFontAttributeName];
+        }else if ([key isEqualToString:@"NSFontAttributeName_Bold"]) {
+            CGFloat fontValue = [obj floatValue];
+            UIFont *font = [UIFont boldSystemFontOfSize:fontValue];
+            [factDict setObject:font forKey:NSFontAttributeName];
         }else {}
     }];
     return factDict;
@@ -461,6 +514,20 @@ SEL getSelectorWithPattern(const char *prefix, const char *key, const char *suff
     }
 }
 
++ (UIBlurEffectStyle)tx_blurEffectStyleWithPath:(NSString *)path {
+    NSString *tyle = [self tx_stringWithPath:path];
+    if ([tyle isKindOfClass:[NSNumber class]]) {
+        return [self _enumValueWith:(NSNumber *)tyle];
+    }
+    if (![tyle isKindOfClass:[NSString class]]) return UIBlurEffectStyleLight;
+    
+    if ([tyle isEqualToString:@"UIBlurEffectStyleDark"]) {
+        return UIBlurEffectStyleDark;
+    }else{
+        return UIBlurEffectStyleLight;
+    }
+}
+
 #pragma mark - Private
 
 + (NSUInteger)_enumValueWith:(NSNumber *)number {
@@ -496,18 +563,19 @@ SEL getSelectorWithPattern(const char *prefix, const char *key, const char *suff
 
 + (UIColor*)tx_colorFromString:(NSString*)hexStr {
     hexStr = [hexStr stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
-    if([hexStr hasPrefix:@"0x"]) {
-        hexStr = [hexStr substringFromIndex:2];
-    }
-    if([hexStr hasPrefix:@"#"]) {
-        hexStr = [hexStr substringFromIndex:1];
-    }
-    
-    NSUInteger hex = [self _intFromHexString:hexStr];
-    if(hexStr.length > 6) {
-        return TXSakuraRGBHex(hex);
-    }
-    return TXSakuraRGBHex(hex);
+    return TXRGBHex(hexStr);
+//    if([hexStr hasPrefix:@"0x"]) {
+//        hexStr = [hexStr substringFromIndex:2];
+//    }
+//    if([hexStr hasPrefix:@"#"]) {
+//        hexStr = [hexStr substringFromIndex:1];
+//    }
+//
+//    NSUInteger hex = [self _intFromHexString:hexStr];
+//    if(hexStr.length > 6) {
+//        return TXSakuraRGBHex(hex);
+//    }
+//    return TXSakuraRGBHex(hex);
 }
 
 #pragma mark - Private
